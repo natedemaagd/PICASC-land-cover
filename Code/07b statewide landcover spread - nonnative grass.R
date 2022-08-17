@@ -14,14 +14,14 @@ library(doParallel)
 registerDoParallel(cores = 4)
 
 #Set the label for the files
-simulation_label <- "_05%spread_100 years_250m"
+simulation_label <- "_02%spread_100 years_250m"
 #Parameters
 #infested_value
-infest_val <- 32
+infest_val <- 34
 #susceptible_values 
-suscep <- as.integer(c(8, 10, 13))
+suscep <- as.integer(c(14, 15, 20))
 #spread_rate 
-spredrate <- growrate <- 0.05
+spredrate <- growrate <- 0.02
 #bird_rate 
 birdcell <- 0.00
 #simulation length (how far into the future will the sim run)
@@ -43,7 +43,7 @@ values(LAI) <- 3.3
 
 
 #Load regression results
-reg_results <- readRDS("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/02_regressions/02_regressions_landcover32_PtSm.rds")
+reg_results <- readRDS("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/02_regressions/02_regressions_landcover34_PtSm.rds")
 reg_coefs <- coefficients(reg_results)
 intercept = reg_coefs[[1]]
 beta_PT  = reg_coefs[[2]]
@@ -205,7 +205,7 @@ for (i in 1:simulation_count) {
   print(i)
 }
 
-save.image("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07 statewide landcover spread/sim_1_to_1000_LC32.RData")
+save.image("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07 statewide landcover spread/sim_1_to_1000_LC34.RData")
 
 
 
@@ -248,7 +248,7 @@ for (i in 1:simlength) {
   infested_cells[i] <- sum(values(last_raster) == infested_value, na.rm = TRUE)
   
   # save landcover rasters
-  writeRaster(last_raster, paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/07 statewide landcover spread/rasters/LC 32 - 5 pct spread rate - landcover rasters/finalRRaster",
+  writeRaster(last_raster, paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/07 statewide landcover spread/rasters/LC 34 - 2 pct spread rate - landcover rasters/finalRRaster",
                                   simulation_label, ' year ', i, ".tif"),
               overwrite = TRUE)
   summary_list_of_rasters <- c(summary_list_of_rasters, last_raster)

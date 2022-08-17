@@ -39,7 +39,7 @@ ggplot(data = dat) +
   geom_histogram(aes(pct_woody, fill = Landcover, group = Landcover),
                  color = 'black', bins = 50) +
   labs(x = 'Percent woody cover', y = 'Pixel count') +
-  theme(text = element_text(size = 13))
+  theme(text = element_text(size = 20))
 
 rm(list=ls())
 gc()
@@ -104,14 +104,15 @@ ggplot(data = dat, aes(x = woodyCovChange_pct*100, fill = location, color = loca
                           'Mean protected = ',
                           round(mean(dat$woodyCovChange_pct[dat$location == 'Protected']*100)), '%'),
            hjust = 0) +
-  theme(text = element_text(size = 15))
+  theme(text = element_text(size = 20))
 
 # plot change in woody cover as function of rainfall
-ggplot(data = dat[dat$location == 'pww',], aes(x = rainAnn_mm, y = woodyCovChange_pct*100)) +
-  geom_hex() +
+ggplot(data = dat[dat$location == 'Unprotected',], aes(x = rainAnn_mm, y = woodyCovChange_pct*100)) +
+  geom_point() +
   scale_fill_viridis_c() +
   labs(x = 'Mean annual rainfall (mm)',
-       y = 'Change in woody cover (%)')
+       y = 'Change in woody cover (%)') +
+  theme(text = element_text(size = 20))
 
 rm(list=ls())
 gc()
