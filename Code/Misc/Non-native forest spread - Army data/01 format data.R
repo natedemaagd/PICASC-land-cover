@@ -185,3 +185,9 @@ ggsave2(filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Figures and t
                           'nonnative canopy change as fcn of rainfall.png'),
         dpi = 300, height = 10, width = 10.5)
 
+
+
+
+saveRDS(datChangeCanopy,
+        file = 'H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/Misc/Non-native forest spread - Army data/01 formatted data.rds')
+
