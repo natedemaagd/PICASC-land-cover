@@ -26,7 +26,7 @@ datByLoc <- lapply(datByLoc, function(df){
   df[order(df$PltMainDate),]
 })
 
-# get change in canopy for each location
+# get starting canopy and change in canopy for each location
 datChangeCanopy <-
   data.frame(length_years =
                sapply(datByLoc, function(df){
@@ -55,6 +55,18 @@ datChangeCanopy <-
              y =
                sapply(datByLoc, function(df){
                  df[1, 'coords.x2']
+               }),
+             NatCanopyStart =
+               sapply(datByLoc, function(df){
+                 df[1, 'NatCanopy']
+               }),
+             XCanopyStart =
+               sapply(datByLoc, function(df){
+                 df[1, 'XCanopy']
+               }),
+             TotalCanopyStart =
+               sapply(datByLoc, function(df){
+                 df[1, 'TotCanopy']
                }))
 
 # change in canopy per year

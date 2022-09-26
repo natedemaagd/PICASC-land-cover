@@ -1,14 +1,19 @@
 
-# this script tracks the change in woody/herbaceous/bare cover in Hakalau Forest Reserve
+# this script tracks the change in woody/herbaceous/bare cover in Hakalau Forest Reserve.
+# It looks only at the "snapshot" change from 1999 to 2016, with no intermeidate years considered.
 
-library(raster); library(sf); library(ggplot2); library(viridis)
+library(raster); library(sf); library(ggplot2); library(viridis); library(snow)
+rasterOptions(maxmemory = 1e+09)
 
 # load data
 sf_hfr <- read_sf("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/fenced regions/Hakalau GIS data/HFR complete.kml")
+r_woodList <- list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Fire/interpolated_yearly_landcover_percentages',
+                         pattern = 'wood', full.names = TRUE)
+r_woodList <- lapply(r_woodList, raster)
 r_wood1999 <- raster("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Fire/00 Statewide landcover rasters resampled/HI_FracLC_wood_1999.tif")
 r_wood2016 <- raster("H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Fire/00 Statewide landcover rasters resampled/HI_FracLC_wood_2016.tif")
 
-# calculate change in wood cover and subset using HFR fences
+# calculate change in wood cover 1999 to 2016 and subset using HFR fences
 r_woodChange <- r_wood2016 - r_wood1999
 sf_hfr <- st_zm(sf_hfr)  # coerce to two-dimensional polygons
 r_woodChange_hfr <- mask(x = r_woodChange, mask = sf_hfr)
@@ -74,9 +79,9 @@ ggplot(data = plotdat,
        y = 'Number of pixels',
        fill = 'Initial woody\ncover (%)') +
   scale_x_continuous(limits = c(-1, 6)) +
-  theme(text = element_text(size = 15))
+  theme(text = element_text(size = 13))
 ggsave(filename = 'H:/My Drive/Projects/PICASC Land-to-sea/Figures and tables/Figures/Water yield/Hakalau landcover change/avg yearly change woody cover Hakalau Forest Reserve.png',
-       dpi = 300, height = 4, width = 6)
+       dpi = 300, height = 5, width = 7)
 
 rm(df_woodChange, plotdat)
 gc()
@@ -87,7 +92,7 @@ gc()
 ##### how many pixels converted to forest? #####
 
 # define forest threshold (percent landcover)
-threshold <- 30
+threshold <- 40
 length_years <- 2016 - 1999
 
 # dummy raster of forest - 1999

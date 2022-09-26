@@ -8,7 +8,7 @@ library(ggplot2); library(reshape2); library(viridis); library(cowplot)
 
 # load data
 dat <- read.csv("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Army data/ANRPO_Belt_transect_alien_canopy_cover_species_matrix.csv")
-colnames(dat)[colnames(dat) == 'Ã¯..BltPltCode'] <- 'BltPltCode'
+colnames(dat)[colnames(dat) == 'ï..BltPltCode'] <- 'BltPltCode'
 
 # keep only species of interest
 vec_species <- c('TooCil', 'PsiCat', 'GreRob', 'SchTer')
@@ -30,6 +30,8 @@ for(s in 1:length(vec_species)){
 
 
 ##### create slope variables for species spread rates #####
+
+# slope = percent change per year
 
 # split data by site
 datBySite <- split(dat, dat$BltPltCode)
@@ -154,3 +156,70 @@ for(s in 1:length(vec_species)){
 plot_grid(plotlist = plots, ncol = 2)
 ggsave2(filename = 'H:/My Drive/Projects/PICASC Land-to-sea/Figures and tables/Figures/Army data/ANRPO species-specific growth.png',
         height = 7.8, width = 13.2, dpi = 300)
+
+
+
+
+##### convert slopes to spread rate (area/year) #####
+
+# define transect area
+area_transect_sqMeters <- 30 * 10
+
+# create data.frame with distribution of positive growth rates by species
+list_positiveGrowthBySpecies <-
+  list(data.frame(species = 'TooCil',
+                  slope = dat$slope_TooCil[dat$slope_TooCil > 0]),
+       data.frame(species = 'PsiCat',
+                  slope = dat$slope_PsiCat[dat$slope_PsiCat > 0]),
+       data.frame(species = 'GreRob',
+                  slope = dat$slope_GreRob[dat$slope_GreRob > 0]),
+       data.frame(species = 'SchTer',
+                  slope = dat$slope_SchTer[dat$slope_SchTer > 0])
+  )
+dat_positiveGrowthBySpecies <-
+  do.call(rbind, list_positiveGrowthBySpecies)
+dat_positiveGrowthBySpecies <-
+  dat_positiveGrowthBySpecies[!is.na(dat_positiveGrowthBySpecies$slope),]
+rm(list_positiveGrowthBySpecies)
+
+# plot distribution of growth rates
+ggplot(data = dat_positiveGrowthBySpecies,
+       aes(x = slope, color = species, fill = species)) +
+  geom_histogram(bins = 30) +
+  scale_fill_viridis_d() +
+  scale_color_viridis_d() +
+  theme(text = element_text(size = 15)) +
+  labs(x = 'Growth rate (% per year)',
+       y = 'Number of transects',
+       color = NULL, fill = NULL)
+
+# convert slope %/yr to area/yr (sq meters/yr)
+dat_positiveGrowthBySpecies$sqMetersPerYr <-
+  dat_positiveGrowthBySpecies$slope / 100 * area_transect_sqMeters
+
+# plot distribution of spread rate (sq meters per year)
+ggplot(data = dat_positiveGrowthBySpecies,
+       aes(x = sqMetersPerYr, color = species, fill = species)) +
+  geom_histogram(bins = 30) +
+  scale_fill_viridis_d() +
+  scale_color_viridis_d() +
+  theme(text = element_text(size = 15)) +
+  labs(x = 'Growth rate (sq. meters per year)',
+       y = 'Number of transects',
+       color = NULL, fill = NULL)
+
+# how many years to fill entire transect?
+dat_positiveGrowthBySpecies$yrs_to_fill_30sqMeters <-
+  area_transect_sqMeters / dat_positiveGrowthBySpecies$sqMetersPerYr
+
+# plot distribution of years to fill transect
+ggplot(data = dat_positiveGrowthBySpecies,
+       aes(x = yrs_to_fill_30sqMeters,
+           color = species, fill = species)) +
+  geom_histogram(bins = 30) +
+  scale_fill_viridis_d() +
+  scale_color_viridis_d() +
+  theme(text = element_text(size = 15)) +
+  labs(x = 'Years to fill 900 sq. meter pixel',
+       y = 'Number of transects',
+       color = NULL, fill = NULL)
