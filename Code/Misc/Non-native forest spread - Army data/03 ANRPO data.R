@@ -8,7 +8,7 @@ library(ggplot2); library(reshape2); library(viridis); library(cowplot)
 
 # load data
 dat <- read.csv("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Army data/ANRPO_Belt_transect_alien_canopy_cover_species_matrix.csv")
-colnames(dat)[colnames(dat) == 'ï..BltPltCode'] <- 'BltPltCode'
+colnames(dat)[colnames(dat) == '?..BltPltCode'] <- 'BltPltCode'
 
 # keep only species of interest
 vec_species <- c('TooCil', 'PsiCat', 'GreRob', 'SchTer')
@@ -167,13 +167,13 @@ area_transect_sqMeters <- 30 * 10
 
 # create data.frame with distribution of positive growth rates by species
 list_positiveGrowthBySpecies <-
-  list(data.frame(species = 'TooCil',
+  list(data.frame(species = 'Red cedar',
                   slope = dat$slope_TooCil[dat$slope_TooCil > 0]),
-       data.frame(species = 'PsiCat',
+       data.frame(species = 'Strawberry guava',
                   slope = dat$slope_PsiCat[dat$slope_PsiCat > 0]),
-       data.frame(species = 'GreRob',
+       data.frame(species = 'Silk oak',
                   slope = dat$slope_GreRob[dat$slope_GreRob > 0]),
-       data.frame(species = 'SchTer',
+       data.frame(species = 'Christmas berry',
                   slope = dat$slope_SchTer[dat$slope_SchTer > 0])
   )
 dat_positiveGrowthBySpecies <-
@@ -183,15 +183,40 @@ dat_positiveGrowthBySpecies <-
 rm(list_positiveGrowthBySpecies)
 
 # plot distribution of growth rates
-ggplot(data = dat_positiveGrowthBySpecies,
-       aes(x = slope, color = species, fill = species)) +
-  geom_histogram(bins = 30) +
+p <- ggplot() +
+  geom_histogram(data = dat_positiveGrowthBySpecies,
+                 aes(x = slope, color = species, fill = species),
+                 bins = 30, alpha = 0.8) +
   scale_fill_viridis_d() +
   scale_color_viridis_d() +
-  theme(text = element_text(size = 15)) +
-  labs(x = 'Growth rate (% per year)',
+  theme(text = element_text(size = 15),
+        legend.position = c(0.9, 0.8)) +
+  labs(x = 'Increase in canopy cover (% per year)',
        y = 'Number of transects',
-       color = NULL, fill = NULL)
+       color = NULL, fill = NULL, linetype = NULL)
+
+# add mean and median positive growth rates for each species
+dat_positiveGrowthBySpecies_median <-
+  aggregate(dat_positiveGrowthBySpecies$slope, list(dat_positiveGrowthBySpecies$species), median)
+dat_positiveGrowthBySpecies_mean <-
+  aggregate(dat_positiveGrowthBySpecies$slope, list(dat_positiveGrowthBySpecies$species), mean)
+dat_positiveGrowthBySpecies_summary <-
+  cbind(dat_positiveGrowthBySpecies_mean, dat_positiveGrowthBySpecies_median$x)
+colnames(dat_positiveGrowthBySpecies_summary) <-
+  c('species', 'Mean', 'Median')
+rm(dat_positiveGrowthBySpecies_mean, dat_positiveGrowthBySpecies_median)
+dat_positiveGrowthBySpecies_summary <-
+  data.frame(species = dat_positiveGrowthBySpecies_summary$species,
+             value = c(dat_positiveGrowthBySpecies_summary$Mean, dat_positiveGrowthBySpecies_summary$Median),
+             stat = rep(c('Mean', 'Median'), each = length(unique(dat_positiveGrowthBySpecies_summary$species))))
+p +
+  geom_vline(data = dat_positiveGrowthBySpecies_summary,
+             aes(xintercept = value, linetype = stat, color = species),
+             linewidth = 1.2)
+ggsave(p,
+       filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Figures and tables/Figures/Water yield/',
+                         'Misc - Non-native forest spread Army data - nonnative spread rates.png'),
+       dpi = 300)
 
 # convert slope %/yr to area/yr (sq meters/yr)
 dat_positiveGrowthBySpecies$sqMetersPerYr <-

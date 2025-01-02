@@ -1,8 +1,5 @@
 
-# This script spreads invasive pixels according to proportion of invadable area and an
-# invasibility index.
-# E.g., spread rate of 5% would covert 5% of remaining susceptible land annually, choosing
-# pixels (nearly) adjacent to existing invasive landcover according to invasibility probability.
+# This script spreads grass into native and alien forest
 
 library(raster); library(rasterVis); library(ggplot2); library(viridis)
 library(gganimate)
@@ -10,28 +7,31 @@ library(gganimate)
 set.seed(42)
 
 
-# define spread rate and number of years to spread
-r <- 0.02
+# define number of years to spread
 y <- 100
 
 # define susceptible pixels, invasive pixels (see "H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Landcover_MetaCategories_GM.xlsx" for conversion)
-# val_susceptible <- c(8, 10, 13)  # Tom G values
-val_susceptible <- c(100, 200, 300, 400, 500,  # Tom G 10 equivalent (no code for Tom G 8 in new raster)
-                     600, 700, 800)  # Tom G 13 equivalent
-#val_invasive <- 32
-val_invasive <- c(1600, 1700, 1900, 2000)  # Tom G 32 equivalent
+val_susceptible <- c(1100, 1200, 1300, 1400, 1500, 1800, 2100, 2200,  # dry forest (alien and native)
+                     600, 800, 900, 1000, 1700, 2000,  # mesic forest (alien and native)
+                     0) # 0 is dummy variable used for forest in spread
 
-# load landcover raster and convert values of invasive pixels to be one value
+val_invasive <- c(3700, 3800, 3900)  # grasses
+
+# load landcover raster and convert values of invasive pixels to be one value - INITIAL RASTER HERE WILL BE THE POST-FIRE RASTER FROM 09c
 ras <-
   # raster(paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/MHI landcover raster/",
   #               "mhi_land_cover_names.tif"))
-  raster(paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Updated baseline landcover from Jade/2023_11_25_baseline/",
-                "mhi_s0_baseline_names.tif"))
-ras[ras %in% val_invasive] <- 0; val_invasive <- 0
+  raster(paste0(
+    'H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/09 rasters post-fire/09c - final rasters with dummy values/',
+    'worst case 2100.tif'
+  ))
+ras[ras %in% val_invasive] <- -5; val_invasive <- -5
+
+
 
 # load invasibility raster and re-project
 ras_probs <-
-  raster('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07a_max_forest_invasibility.tif')
+  raster(paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07a_max_grass_invasibility.tif'))
 ras_probs[is.na(ras_probs)] <- 0
 ras_probs[ras_probs == 0] <- 1e-10
 ras_probs <- projectRaster(ras_probs, ras, method = 'ngb')
@@ -44,8 +44,8 @@ list_pixelsConverted <- list()  # initiate list to track number of pixels conver
 for(i in 2:y){
   
   # determine the number of pixels that need to be converted: r*100 susceptible pixels
-  num_pixels_to_convert <-
-    round(r * length(list_ras[[i-1]][list_ras[[i-1]] %in% val_susceptible]))
+  num_pixels_to_convert <- 9104  # from 09d. Pixels crossed the 40% threshold for loss of forest and gain of herbaceous cover
+    #round(r * length(list_ras[[i-1]][list_ras[[i-1]] %in% val_susceptible]))  # IN THIS SIMULATION, IT'S A FIXED RATE PER YEAR
   list_pixelsConverted[[i]] <- num_pixels_to_convert  # record number of pixels converted this year
   
   # get indices of all susceptible pixels
@@ -54,7 +54,7 @@ for(i in 2:y){
   # get indices of all invaded pixels
   pixels_invaded <- which(values(list_ras[[i-1]]) %in% val_invasive)
   
-  # find pixels_invaded that are adjacent to susceptible pixels
+  # # find pixels_invaded that are adjacent to susceptible pixels - IN THIS SIMULATION, ADJACENCY DOESNT MATTER
   pixels_adjacent <-
     adjacent(list_ras[[i-1]],
              cells = pixels_susceptible,
@@ -62,6 +62,7 @@ for(i in 2:y){
              directions = 8)
   pixels_adjacent <- pixels_adjacent[,1]  # keep only vector of susceptible pixels adjacent to invaded pixels
   pixels_adjacent <- pixels_adjacent[!duplicated(pixels_adjacent)]  # remove duplicates
+  #pixels_adjacent <- pixels_susceptible  # if we want random rather than adjacent spread
   
   # Convert `num_pixels_to_convert` random adjacent pixels.
   # If num_pixels_to_convert > length(pixels_adjacent), run through additional loop
@@ -70,6 +71,7 @@ for(i in 2:y){
     
     # convert susceptible, adjacent pixels in `ras_temp` based on invasibility metric
     pixels_adjacent_probs <- ras_probs[pixels_adjacent]
+    pixels_adjacent_probs[is.na(pixels_adjacent_probs)] <- median(pixels_adjacent_probs, na.rm = TRUE)
     ras_temp[sample(pixels_adjacent,
                     size = num_pixels_to_convert,
                     prob = pixels_adjacent_probs)] <-
@@ -104,6 +106,7 @@ for(i in 2:y){
     
     # convert susceptible, adjacent pixels in `ras_temp` based on invasibility metric
     pixels_adjacent_probs <- ras_probs[pixels_adjacent]
+    pixels_adjacent_probs[is.na(pixels_adjacent_probs)] <- median(pixels_adjacent_probs, na.rm = TRUE)
     ras_temp[sample(pixels_adjacent,
                     size = num_pixels_to_convert,
                     prob = pixels_adjacent_probs)] <-
@@ -112,20 +115,16 @@ for(i in 2:y){
     # add new raster to list
     list_ras[[i]] <- ras_temp
   }
-  
   print(paste(i, Sys.time()))
   gc()
-  
 }
-
-gc()
 
 # save yearly rasters
 yearVec <- 1:100
 yearVec <- stringr::str_pad(yearVec, 3, pad = "0")
 for(i in 1:length(list_ras)){
   writeRaster(list_ras[[i]],
-              filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07 statewide landcover spread/landcover spread timelapse yearly rasters/07b unprotected/',
+              filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/09 forest loss modeling/09e forest lost to grass yearly rasters/09e-a unprotected/',
                                 'year ', yearVec[[i]], '.tif'),
               overwrite = TRUE)
 }
@@ -135,11 +134,84 @@ gc()
 
 
 
+##### mask with alien forest spread #####
+
+# setup
+library(terra)
+yearVec <- 1:100
+yearVec <- stringr::str_pad(yearVec, 3, pad = "0")
+
+# list forest to grass rasters
+ras_listGrassSpread <-
+  list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/09 forest loss modeling/09e forest lost to grass yearly rasters/09e-a unprotected/',
+             full.names = TRUE, pattern = '.tif')
+
+# list alien forest spread rasters
+ras_listAlienSpread <-
+  list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/07 statewide landcover spread/landcover spread timelapse yearly rasters/07b unprotected/',
+             full.names = TRUE, pattern = '.tif')
+
+# replace any grass with alien forest (i.e., alien forest spread takes precedence over grass spread)
+for(i in 1:length(ras_listGrassSpread)){
+  
+  # get rasters
+  ras_grassSpread <- rast(ras_listGrassSpread[[i]])
+  ras_alienSpread <- rast(ras_listAlienSpread[[i]])
+  
+  # replace grass spread with alien forest spread
+  ras_grassSpread[ras_grassSpread == -5 & ras_alienSpread == 0] <- 0
+  
+  # save raster
+  writeRaster(ras_grassSpread,
+              filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/09 forest loss modeling/09e forest lost to grass yearly rasters/09e-a unprotected/masked by alien forest spread/',
+                                'year ', yearVec[[i]], '.tif'),
+              overwrite = TRUE)
+  print(paste(i, Sys.time()))
+  gc()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##### plot line charts #####
+
+# setup
+library(terra)
+library(doParallel)
+registerDoParallel(cores = 8)
+
+# count pixels converted
+yearVec <- 1:100
+yearVec <- stringr::str_pad(yearVec, 3, pad = "0")
+vec_numGrass <- foreach(i = 1:100,
+                        .combine = 'c', .packages = 'terra') %dopar% {
+  
+  # convert to data.frame
+  dat <- as.data.frame(rast(paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/09 forest loss modeling/09e forest lost to grass yearly rasters/09e-a unprotected/masked by alien forest spread/',
+                                   'year ', yearVec[[i]], '.tif')),
+                       xy = FALSE); gc()
+  colnames(dat) <- 'lc'
+  
+  # count number of forest to grass pixels
+  return(length(dat$lc[dat$lc == -5]))
+  gc()
+  
+}
+
 
 # create line graph dataset
 dat_lines <-
-  data.frame(year = 1:y,
+  data.frame(year = 1:length(yearVec),
              pixels_converted = c(NA, do.call(c, list_pixelsConverted)),
              pixels_cumulativeConverted = NA)
 for(i in 2:nrow(dat_lines)){
@@ -163,52 +235,3 @@ ggplot(data = dat_lines,
   geom_line(size = 2) +
   labs(x = 'Year', y = 'Hectares converted (1000s)') +
   theme(text = element_text(size = 15))
-
-
-
-
-##### plot timelapse #####
-
-# convert data to data.frames and add year variables
-list_df <- lapply(list_ras, function(r){
-  as.data.frame(r, xy = TRUE)
-})
-list_df <- list()
-for(i in 1:length(list_ras)){
-  df <- as.data.frame(list_ras[[i]], xy = TRUE)
-  df <- df[df$layer != 65535,]; gc()
-}
-for(i in 1:length(list_df)){
-  list_df[[i]]$year <- i
-}
-
-# combine into one data.frame
-df <- do.call(rbind, list_df)
-
-# simplify landcover categories and remove NAs
-df$land_cv_tp_simple <- NA
-df$land_cv_tp_simple[df$land_cv_tp %in% val_invasive] <- 'Non-native forest'
-df$land_cv_tp_simple[df$land_cv_tp %in% val_susceptible] <- 'Native forest'
-df$land_cv_tp_simple[!(df$land_cv_tp %in% c(val_invasive, val_susceptible)) &
-                       !is.na(df$land_cv_tp)
-                     ] <- 'Other'
-df <- df[!is.na(df$land_cv_tp_simple),]
-gc()
-
-# plot
-p <- ggplot(df, aes(x = x, y = y, fill = land_cv_tp_simple)) +
-  geom_raster() +
-  scale_fill_manual(values = viridis(4)[c(2,4,1)]) +
-  coord_equal() +
-  # Here comes the gganimate specific bits
-  labs(title = 'Year {frame_time}',
-       fill = NULL) +
-  transition_time(year) +
-  ease_aes('linear') +
-  theme(panel.background = element_blank(),
-        axis.text = element_blank(), axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        text = element_text(size = 15))
-#print(p)
-anim_save(filename = "H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/07 statewide landcover spread/landcover timelapse - no protection.gif",
-          animation = p)

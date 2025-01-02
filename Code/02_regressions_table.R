@@ -5,7 +5,7 @@ reg_names <- list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermedia
 reg_data  <- lapply(reg_names, function(d) readRDS(paste0('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/02_regressions/', d)))
 
 # define regression parameters
-reg_eqn <- formula(AET ~ LAI + SM + U + T + Rnet)
+reg_eqn <- formula(AET ~ PT + rain_ann_in)
 
 stargazer(reg_data,
           # column.labels = c('Montane RF', 'Low dry forest', 'Low mesic forest', 'Montane sub-alp dry forest',

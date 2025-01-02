@@ -1,12 +1,58 @@
 
 library(ggplot2); library(reshape2); library(raster); library(doParallel);
 library(viridis); library(cowplot); library(grid); library(egg)
+library(terra)
 
 registerDoParallel(cores = 10)
 
 # load data and convert to data.table
 dat <- read.csv("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Army data/2022_ANRPO_beltplots_percentcover_spprichness_WGS84.csv")
 dat$PltMainDate <- as.Date(dat$PltMainDate, format = '%Y-%m-%d')
+
+
+
+
+##### merge with aspect #####
+
+# load aspect data and convert to data.frame
+ras_aspect <- rast("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/2021_HI_FIre_Model_Data/Aspect/oahu_aspect_30m_firemod.tif")
+dat_aspect <- as.data.frame(ras_aspect, xy = TRUE)
+
+# find closest aspect pixel for each transect
+vec_aspect <-
+  foreach(i = 1:nrow(dat), .combine = 'rbind') %dopar% {
+    
+    # site coordinates
+    coords_site <- unlist(dat[i, c('coords.x1', 'coords.x2')])
+    
+    # aspect of pixel closest to site coordinates
+    gc()
+    return(data.frame(site = i,
+                      aspect_radians = dat_aspect[which.min(sqrt((coords_site[[1]] - dat_aspect$x)^2 +
+                                                                   (coords_site[[2]] - dat_aspect$y)^2)),
+                                                  'oahu_aspect_30m_firemod'])
+    )
+    
+  }
+
+# add to data
+dat$site <- 1:nrow(dat)
+dat <- merge(dat, vec_aspect, 'site')
+rm(dat_aspect, ras_aspect, vec_aspect)
+dat$site <- NULL
+
+# convert radians to degrees
+dat$aspect_degrees <- (dat$aspect_radians * 180) / (pi)
+
+# convert degrees to percent northness
+dat$northness_pct <- dat$aspect_degrees
+dat$northness_pct <- ifelse(dat$northness_pct > 180, 180 - (dat$northness_pct - 180), dat$northness_pct)
+dat$northness_pct <- (1-dat$northness_pct/180)*100
+
+
+
+
+##### formatting #####
 
 # split data by location
 datByLoc <- split(dat, dat$BltPltCode)
@@ -196,6 +242,28 @@ plot_grid(p_scatter, p_scatter_legend,  p_hist,
 ggsave2(filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Figures and tables/Figures/Army data/',
                           'nonnative canopy change as fcn of rainfall.png'),
         dpi = 300, height = 10, width = 10.5)
+
+
+
+
+##### analyze aspect and canopy change #####
+
+# merge data
+dat_aspect <- dat[!duplicated(dat$BltPltCode), c('BltPltCode', 'northness_pct')]
+datChangeCanopy$BltPltCode <- rownames(datChangeCanopy)
+datChangeCanopy <- merge(datChangeCanopy, dat_aspect, 'BltPltCode')
+
+# analyze
+ggplot(data = datChangeCanopy,
+       aes(x = northness_pct, y = XCanopy_pctChangePerYr,
+           color = length_years)) +
+  geom_point() +
+  stat_smooth(method = loess)+
+  scale_color_viridis(name = 'Years\nobserved') +
+  labs(x = '% "Northness"', y = 'Non-native canopy spread (annual %)') +
+  theme(text = element_text(size = 14))
+summary(lm(data = datChangeCanopy, formula = XCanopy_pctChangePerYr ~ northness_pct + northness_pct*northness_pct))
+
 
 
 
