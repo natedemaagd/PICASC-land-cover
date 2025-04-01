@@ -3,7 +3,6 @@
 # from the change in land cover
 
 library(sf); library(terra); library(ggplot2); library(ggsn); library(tidyverse)
-library(viridis)
 
 
 
@@ -12,7 +11,6 @@ library(viridis)
 
 # load rasters
 list_rastersWY_filenames <- list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/12 climate change/12a rasters water yield', full.names = TRUE, pattern = '.tif')
-list_rastersWY_filenames <- list_rastersWY_filenames[-grep('Iprc|Ncar', list_rastersWY_filenames)]
 list_rastersWY <- lapply(list_rastersWY_filenames, rast)
 list_rastersWY_filenames <- strsplit(list_rastersWY_filenames, '/')
 list_rastersWY_filenames <- sapply(list_rastersWY_filenames, function(x) substr(x[[length(x)]], 6, nchar(x[[length(x)]])-4))
@@ -22,24 +20,6 @@ rm(list_rastersWY_filenames)
 # load aquifer unit shapefile
 sf_aquifer <- read_sf('H:/My Drive/Projects/Data/Shapefiles/DLNR_Aquifers/DLNR_Aquifers.shp')
 sf_aquifer <- st_transform(sf_aquifer, crs(list_rastersWY$WYdynBaseline))
-
-
-
-
-##### calculate change in water yield statewide #####
-
-# calculate volume (mm to liters, given pixel is 30*30 meters) in each raster
-list_wy <-
-  lapply(list_rastersWY,
-         function(r){
-           sum(values(r), na.rm = TRUE) * 30000 * 30000 * 0.000001
-         })
-names(list_wy) <- names(list_rastersWY)
-gc()
-
-# calculate change in water yield for each scenario (million liters per day)
-with(list_wy, WYdynRcp85 - WYdynBaseline) / 1e6 / 365
-with(list_wy, WYstaRcp85 - WYstaBaseline) / 1e6 / 365
 
 
 
@@ -127,8 +107,9 @@ rm(datWY_byaquifer_agg); gc()
 
 # overall % change in water yield: ((rain2 - ET2) - (rain1 - ET1)) / (rain1 - ET1) * 100
 
-sf_aquifer$pctChangeWy_dynRcp85 = with(sf_aquifer, (wy.dynRcp85 - wy.dynBaseline) / wy.dynBaseline * 100)
-sf_aquifer$pctChangeWy_staRcp85 = with(sf_aquifer, (wy.staRcp85 - wy.staBaseline) / wy.staBaseline * 100)
+sf_aquifer$pctChangeWy_dynRcp45Iprc = with(sf_aquifer, (wy.dynRcp45Iprc - wy.dynBaseline) / wy.dynBaseline * 100)
+sf_aquifer$pctChangeWy_dynRcp85Iprc = with(sf_aquifer, (wy.dynRcp85Iprc - wy.dynBaseline) / wy.dynBaseline * 100)
+sf_aquifer$pctChangeWy_dynRcp85Ncar = with(sf_aquifer, (wy.dynRcp85Ncar - wy.dynBaseline) / wy.dynBaseline * 100)
 
 
 
@@ -136,9 +117,9 @@ sf_aquifer$pctChangeWy_staRcp85 = with(sf_aquifer, (wy.staRcp85 - wy.staBaseline
 ##### plots #####
 
 # melt data
-plotdat <- st_sf(scenario = rep(c('Dynamical downscale RCP 8.5', 'Statistical downscale RCP 8.5'), each = nrow(sf_aquifer)),
+plotdat <- st_sf(scenario = rep(c('IPRC RCP 4.5', 'IPRC RCP 8.5', 'NCAR RCP 8.5'), each = nrow(sf_aquifer)),
                  objectid = sf_aquifer$objectid,
-                 pctChange = c(sf_aquifer$pctChangeWy_dynRcp85, sf_aquifer$pctChangeWy_staRcp85),
+                 pctChange = c(sf_aquifer$pctChangeWy_dynRcp45Iprc, sf_aquifer$pctChangeWy_dynRcp85Iprc, sf_aquifer$pctChangeWy_dynRcp85Ncar),
                  geometry = sf_aquifer$geometry,
                  crs = crs(sf_aquifer))
 
@@ -169,16 +150,16 @@ p <-
   #                  stat = sf_coordinates,
   #                  min.segment.length = 0.1, max.time = 5, alpha = 0.8) +
   facet_wrap(~scenario, strip.position = 'top', nrow = length(unique(plotdat$scenario))) +
-  scale_fill_manual(values = viridis(8, option = 'turbo')[2:7]) +
-  scale_color_manual(values = viridis(8, option = 'turbo')[2:7]) +
+  scale_fill_viridis_d(option = 'turbo') +
+  scale_color_viridis_d(option = 'turbo') +
   north(data = plotdat, location = 'topright', symbol = 9) +
   scalebar(data = plotdat,
            location = 'bottomleft', transform = FALSE,
            dist_unit = 'km', dist = 100, st.dist = 0.03,
            facet.var = 'scenario',
-           facet.lev = 'Statistical downscale RCP 8.5') +
+           facet.lev = 'NCAR RCP 8.5') +
   labs(fill = '% change\nwater yield') +
-  theme(text = element_text(size = 20),
+  theme(text = element_text(size = 14),
         panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_blank())
 
 ggsave(p,
@@ -189,13 +170,3 @@ ggsave(p,
        filename = paste0('H:/My Drive/Projects/PICASC Land-to-sea/Figures and tables/Figures/Water yield/',
                          '14c - pct change in water yield under climate models.pdf'),
        dpi = 300, height = 12, width = 12)
-
-
-
-
-##### save data for comparison with land cover change results #####
-
-st_write(plotdat,
-         dsn = 'H:/My Drive/Projects/PICASC Land-to-sea/Data/Intermediate/Water yield/14/14c - water yield by aquifer unit.gpkg',
-         delete_dsn = TRUE)
-

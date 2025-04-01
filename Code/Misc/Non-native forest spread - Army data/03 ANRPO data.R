@@ -1,5 +1,5 @@
 
-# This script looks at the spread of specific non-nativbe landcovers in ANRPO data.
+# This script looks at the spread of specific non-native landcovers in ANRPO data.
 # Interested in Toona Ciliata/red cedar, Psidium cattelianum/strawberry guava,
 # Grevillea robusta/silk oak, and Schinus terebinthifolius/christmas berry
 

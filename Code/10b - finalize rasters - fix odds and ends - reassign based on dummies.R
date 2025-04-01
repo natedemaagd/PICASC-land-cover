@@ -12,7 +12,7 @@ library(terra)
 # list all rasters
 list_rasters <- list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/09 rasters post-fire/10a - final rasters with assigned landcover values/',
                            full.names = TRUE, pattern = '.tif')
-list_rasters <- list_rasters[!grepl('finalized', list_rasters)]  # don't include the finalized rasters (created here) if they already exist
+list_rasters <- list_rasters[!grepl('V2', list_rasters)]  # don't include the finalized rasters (created here) if they already exist
 
 # list dummy rasters
 list_rastersDummy <- list.files('H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/09 rasters post-fire/09c - final rasters with dummy values',

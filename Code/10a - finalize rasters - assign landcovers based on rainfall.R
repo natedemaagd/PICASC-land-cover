@@ -50,7 +50,7 @@ vec_moistZoneDry <- c(1100, 1200, 1300, 1400, 1800, 2100, 2200, 2700, 2800,
 ##### get rainfall summaries of pertinent landcovers #####
 
 #resample rainfall raster
-ras_rainfall <- projectRaster(ras_rainfall, ras_landcover)
+#ras_rainfall <- projectRaster(ras_rainfall, ras_landcover)
 # writeRaster(ras_rainfall,
 #             filename = paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/2021_HI_FIre_Model_Data - PROTECT/rainfall_ann/",
 #                               "HI_EVAP_mean_annual_rainfall__statewide_projectedToMHIlandcover.tif"),
@@ -326,14 +326,14 @@ rm(i)
 
 
 
-# save rasters - janky moisture zones
-for(i in 1:length(list_finalRasters_newLandcoverValues)){
-  writeRaster(list_finalRasters_newLandcoverValues[[i]],
-              filename = paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/09 rasters post-fire/10a - final rasters with assigned landcover values/",
-                                names(list_finalRasters_newLandcoverValues)[[i]], '.tif'),
-              overwrite = TRUE)
-  print(paste0(i, '-', Sys.time()))
-}
+# # save rasters - janky moisture zones
+# for(i in 1:length(list_finalRasters_newLandcoverValues)){
+#   writeRaster(list_finalRasters_newLandcoverValues[[i]],
+#               filename = paste0("H:/My Drive/Projects/PICASC Land-to-sea/Data/Processed/Water yield/09 rasters post-fire/10a - final rasters with assigned landcover values/",
+#                                 names(list_finalRasters_newLandcoverValues)[[i]], '.tif'),
+#               overwrite = TRUE)
+#   print(paste0(i, '-', Sys.time()))
+# }
 
 # save rasters - corrected moisture zones
 for(i in 1:length(list_finalRasters_consistentMoistureZones)){

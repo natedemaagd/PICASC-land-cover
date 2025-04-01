@@ -29,7 +29,7 @@ sf_fire <- st_transform(sf_fire, st_crs(ras_grass1999))
 
 # land cover raster for masking
 ras_lc <- rast("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Updated baseline landcover from Jade/2023_11_25_baseline/mhi_s0_baseline_noNames.tif")
-ras_lc <- project(ras_lc, ras_grass1999, method = 'near')
+ras_lc <- project(ras_lc, ras_grass1999, method = 'near', threads = TRUE)
 
 # 2015 ag shapefile for masking
 sf_ag2015 <- read_sf("H:/My Drive/Projects/PICASC Land-to-sea/Data/Raw/Water yield/Agricultural_Land_Use_-_2015_Baseline/Agricultural_Land_Use_-_2015_Baseline.shp")

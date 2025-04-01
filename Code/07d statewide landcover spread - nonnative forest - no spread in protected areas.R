@@ -36,6 +36,25 @@ sf_ungulateProtection <- rbind(sf_ungulateProtection, sf_np)
 
 
 
+
+##### what percent of land is protected? #####
+
+r <- raster(list_landcoverRasters[[1]])
+values(r)[values(r) == 65535] <- NA
+values(r)[!is.na(values(r))] <- 0
+sf_ungulateProtection <-
+  st_transform(sf_ungulateProtection, "+proj=utm +zone=4 +datum=NAD83 +units=m +no_defs")
+sf_ungulateProtection <-
+  sf_ungulateProtection[!st_is_empty(sf_ungulateProtection),,drop=FALSE]
+r <- raster::mask(r, sf_ungulateProtection, updatevalue = 1, inverse = TRUE)
+r_dat <- as.data.frame(r)
+table(r_dat$year.001)
+4073725 / (4073725 + 14495251) * 100  # 21.93834% of land is protected
+4093725 * 0.09  # 368435.2 hectares protected
+
+
+
+
 ##### in each yearly raster, mask the protected areas with original landcover #####
 
 # keep original raster separate to use as mask
